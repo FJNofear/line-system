@@ -14,24 +14,19 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [deed, setDeed] = useState("");
   const [district, setDistrict] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      try {
-        await liff.init({ liffId: "2008957080-rlrPh6iX" });
+      await liff.init({ liffId: "2008957080-rlrPh6iX" });
 
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
-        const prof = await liff.getProfile();
-        setProfile(prof);
-      } catch (err) {
-        alert("LIFF เริ่มต้นไม่สำเร็จ");
-        console.error(err);
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
       }
+
+      const prof = await liff.getProfile();
+      setProfile(prof);
     };
 
     init();
@@ -45,55 +40,50 @@ export default function RegisterPage() {
       return;
     }
 
-    if (loading) return;
+    setLoading(true);
 
-    try {
-      setLoading(true);
+    // 🔎 เช็คว่าผู้ใช้นี้เคยลงทะเบียนเลขโฉนดนี้แล้วหรือยัง
+    const { data: existing } = await supabase
+      .from("surveys")
+      .select("id")
+      .eq("user_id", profile.userId)
+      .eq("title_deed", deed)
+      .maybeSingle();
 
-      // ✅ เช็คซ้ำ: user เดิม + เลขโฉนดเดิม
-      const { data: existing } = await supabase
-        .from("surveys")
-        .select("id")
-        .eq("user_id", profile.userId)
-        .eq("rw12", deed)
-        .maybeSingle();
+    if (existing) {
+      setLoading(false);
+      alert("คุณได้ลงทะเบียนเลขโฉนดนี้แล้ว");
+      return;
+    }
 
-      if (existing) {
-        alert("คุณได้ลงทะเบียนเลขโฉนดนี้แล้ว");
-        setLoading(false);
-        return;
-      }
+    // 💾 บันทึกข้อมูล
+    const { error } = await supabase.from("surveys").insert([
+      {
+        user_id: profile.userId,
+        display_name: profile.displayName,
+        picture_url: profile.pictureUrl,
+        title_deed: deed,      // สำคัญ! แก้ error null
+        rw12: deed,
+        district: district,
+        status: "รอดำเนินการ",
+      },
+    ]);
 
-      // ✅ บันทึกข้อมูล
-      const { error } = await supabase.from("surveys").insert([
-        {
-          user_id: profile.userId,
-          rw12: deed,
-          district: district,
-          display_name: profile.displayName,
-          picture_url: profile.pictureUrl,
-          status: "รอดำเนินการ"
-        }
-      ]);
+    setLoading(false);
 
-      if (error) throw error;
-
-      setShowSuccess(true);
+    if (error) {
+      console.log(error);
+      alert("เกิดข้อผิดพลาด");
+    } else {
+      alert("ลงทะเบียนสำเร็จ");
       setDeed("");
       setDistrict("");
-
-    } catch (err: any) {
-      alert("เกิดข้อผิดพลาด: " + err.message);
-      console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center p-6 text-green-700">
 
-      {/* Loading */}
       {loading && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl shadow-lg flex flex-col items-center">
@@ -103,31 +93,12 @@ export default function RegisterPage() {
         </div>
       )}
 
-      {/* Success */}
-      {showSuccess && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
-            <h2 className="text-2xl font-bold mb-4">✅ ลงทะเบียนสำเร็จ</h2>
-            <button
-              onClick={() => {
-                setShowSuccess(false);
-                liff.closeWindow();
-              }}
-              className="bg-green-600 text-white px-6 py-2 rounded-xl"
-            >
-              ปิดหน้าต่าง
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Logo */}
       <img
         src="https://uppic.cloud/ib/LLTyVfpp4nz1XNA_1768309771.png"
         className="w-32 mb-4"
       />
 
-      <h1 className="text-2xl font-bold mb-2">
+      <h1 className="text-2xl font-bold mb-6">
         ระบบลงทะเบียน ติดตามสถานะงาน
       </h1>
 
@@ -139,7 +110,7 @@ export default function RegisterPage() {
               src={profile.pictureUrl}
               className="w-24 h-24 rounded-full mb-2 border-4 border-green-500"
             />
-            <p className="font-semibold text-lg">
+            <p className="text-lg font-semibold">
               สวัสดีคุณ {profile.displayName}
             </p>
           </div>
@@ -169,10 +140,11 @@ export default function RegisterPage() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-green-600 text-white p-3 rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50"
+            className="w-full bg-green-600 text-white p-3 rounded-xl font-semibold hover:bg-green-700 transition disabled:bg-gray-400"
           >
             ลงทะเบียน
           </button>
+
         </div>
       )}
     </div>
