@@ -12,8 +12,7 @@ const supabase = createClient(
 export default function RegisterPage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [deed, setDeed] = useState("");
-  const [district, setDistrict] = useState("");
+  const [rw12, setRw12] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -21,7 +20,7 @@ export default function RegisterPage() {
     const init = async () => {
       try {
         await liff.init({
-          liffId: "2008957080-rlrPh6iX"
+          liffId: process.env.NEXT_PUBLIC_LIFF_ID!
         });
 
         if (!liff.isLoggedIn()) {
@@ -41,11 +40,22 @@ export default function RegisterPage() {
     init();
   }, []);
 
+  // ✅ format rw12 เป็น 345/2569 อัตโนมัติ
+  const formatRw12 = (value: string) => {
+    const onlyNumbers = value.replace(/[^\d]/g, "");
+
+    if (onlyNumbers.length <= 3) {
+      return onlyNumbers;
+    }
+
+    return `${onlyNumbers.slice(0, 3)}/${onlyNumbers.slice(3, 7)}`;
+  };
+
   const handleSubmit = async () => {
     setErrorMessage("");
 
-    if (!deed || !district) {
-      setErrorMessage("กรุณากรอกข้อมูลให้ครบ");
+    if (!rw12) {
+      setErrorMessage("กรุณากรอกเลข rw12");
       return;
     }
 
@@ -57,33 +67,30 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // ✅ เช็คซ้ำ (user เดิม + เลขโฉนดเดิม)
+      // ✅ เช็คซ้ำ rw12
       const { data: existing, error: checkError } = await supabase
-        .from("registrations")
+        .from("case")
         .select("id")
-        .eq("user_id", profile.userId)
-        .eq("title_deed", deed)
+        .eq("rw12", rw12)
         .maybeSingle();
 
       if (checkError) throw checkError;
 
       if (existing) {
-        setErrorMessage("คุณได้ลงทะเบียนเลขโฉนดนี้แล้ว");
+        setErrorMessage("เลข rw12 นี้ถูกใช้แล้ว");
         setLoading(false);
         return;
       }
 
-      // ✅ insert ข้อมูลตรงกับ database 100%
+      // ✅ insert ลง table case
       const { error: insertError } = await supabase
-        .from("registrations")
+        .from("case")
         .insert([
           {
+            rw12: rw12,
             user_id: profile.userId,
             display_name: profile.displayName,
-            picture_url: profile.pictureUrl,
-            title_deed: deed,
-            district: district
-            // status ไม่ต้องใส่ เพราะมี default
+            picture_url: profile.pictureUrl
           }
         ]);
 
@@ -102,7 +109,6 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center p-6 text-green-700">
 
-      {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl shadow-lg flex flex-col items-center">
@@ -112,7 +118,6 @@ export default function RegisterPage() {
         </div>
       )}
 
-      {/* Success Modal */}
       {showSuccess && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
@@ -132,7 +137,6 @@ export default function RegisterPage() {
         </div>
       )}
 
-      {/* Logo */}
       <img
         src="https://uppic.cloud/ib/LLTyVfpp4nz1XNA_1768309771.png"
         className="w-32 mb-4"
@@ -163,25 +167,11 @@ export default function RegisterPage() {
 
           <input
             type="text"
-            placeholder="เลขโฉนด"
-            value={deed}
-            onChange={(e) => setDeed(e.target.value)}
+            placeholder="เลข rw12 (เช่น 345/2569)"
+            value={rw12}
+            onChange={(e) => setRw12(formatRw12(e.target.value))}
             className="w-full mb-4 p-3 rounded-xl border border-green-400 focus:outline-none focus:ring-2 focus:ring-green-500"
           />
-
-          <select
-            value={district}
-            onChange={(e) => setDistrict(e.target.value)}
-            className="w-full mb-4 p-3 rounded-xl border border-green-400"
-          >
-            <option value="">เลือกอำเภอ</option>
-            <option>เมืองหนองบัวลำภู</option>
-            <option>โนนสัง</option>
-            <option>นากลาง</option>
-            <option>นาวัง</option>
-            <option>สุวรรณคูหา</option>
-            <option>ศรีบุญเรือง</option>
-          </select>
 
           <button
             onClick={handleSubmit}
