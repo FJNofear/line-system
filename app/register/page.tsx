@@ -55,7 +55,7 @@ export default function RegisterPage() {
     setErrorMessage("");
 
     if (!rw12) {
-      setErrorMessage("กรุณากรอกเลข rw12");
+      setErrorMessage("กรุณากรอกเลข รว.12");
       return;
     }
 
