@@ -21,21 +21,22 @@ export default function LoginPage() {
     success: false,
   })
 
-  const showPopup = (message: string, success: boolean) => {
-    setPopup({
-      show: true,
-      message,
-      success,
-    })
+const showPopup = (message: string, success: boolean): void => {
+  setPopup({
+    show: true,
+    message,
+    success,
+  })
 
-    setTimeout(() => {
-      setPopup({
-        show: false,
-        message: "",
-        success: false,
-      })
-    }, 3000)
-  }
+  window.setTimeout(() => {
+    setPopup({
+      show: false,
+      message: "",
+      success: false,
+    })
+  }, 3000)
+}
+
 
   const handleLogin = async () => {
     if (!username || !password) {
