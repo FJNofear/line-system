@@ -3,17 +3,19 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
+type PopupState = {
+  show: boolean
+  message: string
+  success: boolean
+}
+
 export default function LoginPage() {
   const router = useRouter()
 
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [popup, setPopup] = useState<{
-    show: boolean
-    message: string
-    success: boolean
-  }>({
+  const [username, setUsername] = useState<string>("")
+  const [password, setPassword] = useState<string>("")
+  const [loading, setLoading] = useState<boolean>(false)
+  const [popup, setPopup] = useState<PopupState>({
     show: false,
     message: "",
     success: false,
@@ -82,8 +84,8 @@ export default function LoginPage() {
       <div style={styles.card}>
         <img
           src="https://uppic.cloud/ib/LLTyVfpp4nz1XNA_1768309771.png"
-          style={styles.logo}
           alt="logo"
+          style={styles.logo}
         />
 
         <h2 style={styles.title}>ADMIN LOGIN</h2>
@@ -133,7 +135,7 @@ const styles: any = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "linear-gradient(135deg,#000000,#111827)",
+    background: "linear-gradient(135deg, #000000, #111827)",
   },
   card: {
     width: 360,
