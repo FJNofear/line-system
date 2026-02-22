@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import bcrypt from "bcryptjs"
+import jwt from "jsonwebtoken"
 
-// ใช้ SERVICE ROLE เท่านั้น
+// 🔐 สร้าง Supabase client (ใช้ SERVICE ROLE เท่านั้น)
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // ต้องใส่ใน Vercel Env
+  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.SUPABASE_SERVICE_ROLE_KEY as string
 )
 
 export async function POST(req: Request) {
@@ -15,45 +16,73 @@ export async function POST(req: Request) {
 
     if (!username || !password) {
       return NextResponse.json(
-        { success: false, message: "Missing credentials" },
+        { error: "Username and password are required" },
         { status: 400 }
       )
     }
 
-    // 🔎 ค้นหา admin
+    // 🔎 ค้นหา admin จาก username
     const { data: admin, error } = await supabase
-      .from("admin_users")
-      .select("*")
+      .from("admins")
+      .select("id, username, password, role")
       .eq("username", username)
       .single()
 
     if (error || !admin) {
-      return NextResponse.json({ success: false })
+      return NextResponse.json(
+        { error: "Username or password incorrect" },
+        { status: 401 }
+      )
     }
 
-    // 🔐 ตรวจรหัสผ่าน
-    const passwordMatch = await bcrypt.compare(
+    // 🔐 ตรวจสอบรหัสผ่าน (bcrypt)
+    const isPasswordValid = await bcrypt.compare(
       password,
-      admin.password_hash
+      admin.password
     )
 
-    if (!passwordMatch) {
-      return NextResponse.json({ success: false })
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: "Username or password incorrect" },
+        { status: 401 }
+      )
     }
 
-    // ✅ Login สำเร็จ
-    return NextResponse.json({
-      success: true,
-      admin: {
+    // 🎫 สร้าง JWT เก็บ role ไปด้วย
+    const token = jwt.sign(
+      {
         id: admin.id,
         username: admin.username,
         role: admin.role,
       },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "1d",
+      }
+    )
+
+    const response = NextResponse.json({
+      success: true,
+      role: admin.role,
     })
-  } catch (err) {
-    console.error("LOGIN ERROR:", err)
+
+    // 🍪 ตั้งค่า cookie
+    response.cookies.set({
+      name: "admin_token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24, // 1 วัน
+    })
+
+    return response
+  } catch (error) {
+    console.error("Login Error:", error)
+
     return NextResponse.json(
-      { success: false, message: "Server error" },
+      { error: "Internal server error" },
       { status: 500 }
     )
   }
