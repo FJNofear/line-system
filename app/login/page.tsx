@@ -9,11 +9,16 @@ export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-  const [popup, setPopup] = useState<{ show: boolean; message: string; success: boolean }>({
+
+  const [popup, setPopup] = useState<{
+    show: boolean
+    message: string
+    success: boolean
+  }>({
     show: false,
     message: "",
     success: false,
-  }
+  })
 
   const showPopup = (message: string, success: boolean) => {
     setPopup({ show: true, message, success })
@@ -42,11 +47,14 @@ export default function LoginPage() {
       setLoading(false)
 
       if (data.success) {
-        const successSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3")
+        const successSound = new Audio(
+          "https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3"
+        )
         successSound.play()
 
         sessionStorage.setItem("admin_logged_in", "true")
         sessionStorage.setItem("admin_username", data.admin.username)
+        sessionStorage.setItem("admin_role", data.admin.role)
 
         showPopup("เข้าสู่ระบบสำเร็จ", true)
 
@@ -54,7 +62,9 @@ export default function LoginPage() {
           router.push("/admin")
         }, 1200)
       } else {
-        const errorSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3")
+        const errorSound = new Audio(
+          "https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3"
+        )
         errorSound.play()
 
         showPopup("Username หรือ Password ไม่ถูกต้อง", false)
@@ -67,7 +77,6 @@ export default function LoginPage() {
 
   return (
     <div style={styles.wrapper}>
-      {/* Background Animation */}
       <div style={styles.bgAnimation}></div>
 
       <div style={styles.card}>
@@ -93,7 +102,11 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button style={styles.button} onClick={handleLogin} disabled={loading}>
+        <button
+          style={styles.button}
+          onClick={handleLogin}
+          disabled={loading}
+        >
           {loading ? "กำลังเข้าสู่ระบบ..." : "Login"}
         </button>
 
@@ -151,7 +164,6 @@ const styles: any = {
   logo: {
     width: 100,
     marginBottom: 20,
-    animation: "float 3s ease-in-out infinite",
   },
   title: {
     color: "#ffd700",
@@ -198,7 +210,6 @@ const styles: any = {
     padding: "12px 18px",
     borderRadius: 8,
     fontWeight: "bold",
-    animation: "fadeIn 0.3s ease",
     zIndex: 999,
   },
 }
