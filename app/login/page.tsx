@@ -9,7 +9,6 @@ export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-
   const [popup, setPopup] = useState<{
     show: boolean
     message: string
@@ -21,9 +20,18 @@ export default function LoginPage() {
   })
 
   const showPopup = (message: string, success: boolean) => {
-    setPopup({ show: true, message, success })
+    setPopup({
+      show: true,
+      message,
+      success,
+    })
+
     setTimeout(() => {
-      setPopup({ show: false, message: "", success: false })
+      setPopup({
+        show: false,
+        message: "",
+        success: false,
+      })
     }, 3000)
   }
 
@@ -38,20 +46,18 @@ export default function LoginPage() {
     try {
       const res = await fetch("/api/admin/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
       })
 
       const data = await res.json()
 
-      setLoading(false)
-
       if (data.success) {
-        const successSound = new Audio(
-          "https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3"
-        )
-        successSound.play()
-
         sessionStorage.setItem("admin_logged_in", "true")
         sessionStorage.setItem("admin_username", data.admin.username)
         sessionStorage.setItem("admin_role", data.admin.role)
@@ -60,29 +66,24 @@ export default function LoginPage() {
 
         setTimeout(() => {
           router.push("/admin")
-        }, 1200)
+        }, 1000)
       } else {
-        const errorSound = new Audio(
-          "https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3"
-        )
-        errorSound.play()
-
         showPopup("Username หรือ Password ไม่ถูกต้อง", false)
       }
     } catch (error) {
-      setLoading(false)
       showPopup("Server Error", false)
     }
+
+    setLoading(false)
   }
 
   return (
     <div style={styles.wrapper}>
-      <div style={styles.bgAnimation}></div>
-
       <div style={styles.card}>
         <img
           src="https://uppic.cloud/ib/LLTyVfpp4nz1XNA_1768309771.png"
           style={styles.logo}
+          alt="logo"
         />
 
         <h2 style={styles.title}>ADMIN LOGIN</h2>
@@ -110,24 +111,18 @@ export default function LoginPage() {
           {loading ? "กำลังเข้าสู่ระบบ..." : "Login"}
         </button>
 
-        {loading && (
-          <div style={styles.spinner}>
-            <div style={styles.loader}></div>
+        {popup.show && (
+          <div
+            style={{
+              ...styles.popup,
+              backgroundColor: popup.success ? "#ffd700" : "#ff4444",
+              color: popup.success ? "#000" : "#fff",
+            }}
+          >
+            {popup.message}
           </div>
         )}
       </div>
-
-      {popup.show && (
-        <div
-          style={{
-            ...styles.popup,
-            background: popup.success ? "#ffd700" : "#ff4444",
-            color: popup.success ? "#000" : "#fff",
-          }}
-        >
-          {popup.message}
-        </div>
-      )}
     </div>
   )
 }
@@ -139,27 +134,14 @@ const styles: any = {
     justifyContent: "center",
     alignItems: "center",
     background: "linear-gradient(135deg,#000000,#111827)",
-    overflow: "hidden",
-    position: "relative",
-  },
-  bgAnimation: {
-    position: "absolute",
-    width: "200%",
-    height: "200%",
-    background:
-      "radial-gradient(circle at center, rgba(255,215,0,0.15) 0%, transparent 60%)",
-    animation: "rotate 20s linear infinite",
   },
   card: {
     width: 360,
     padding: 40,
     borderRadius: 20,
-    backdropFilter: "blur(15px)",
     background: "rgba(255,255,255,0.05)",
     boxShadow: "0 0 40px rgba(255,215,0,0.3)",
     textAlign: "center",
-    position: "relative",
-    zIndex: 2,
   },
   logo: {
     width: 100,
@@ -189,27 +171,11 @@ const styles: any = {
     color: "#000",
     fontWeight: "bold",
     cursor: "pointer",
-    transition: "0.3s",
-  },
-  spinner: {
-    marginTop: 15,
-  },
-  loader: {
-    border: "4px solid #333",
-    borderTop: "4px solid #ffd700",
-    borderRadius: "50%",
-    width: 30,
-    height: 30,
-    margin: "auto",
-    animation: "spin 1s linear infinite",
   },
   popup: {
-    position: "fixed",
-    top: 20,
-    right: 20,
-    padding: "12px 18px",
+    marginTop: 15,
+    padding: "10px",
     borderRadius: 8,
     fontWeight: "bold",
-    zIndex: 999,
   },
 }
